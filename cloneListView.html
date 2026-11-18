@@ -1,0 +1,414 @@
+
+<template>
+    <lightning-card
+        title="Clone List View"
+        icon-name="standard:record">
+
+        <div class="slds-p-around_medium">
+
+            <!-- OBJECT API NAME -->
+            <lightning-input
+                label="Object API Name"
+                placeholder="Contact"
+                value={objectApiName}
+                onchange={handleObjectChange}
+                required>
+            </lightning-input>
+
+            <!-- SOURCE LIST VIEW API NAME -->
+            <div class="slds-m-top_medium">
+
+                <lightning-input
+                    label="Source List View API Name"
+                    placeholder="AllContacts"
+                    value={sourceListViewApiName}
+                    onchange={handleSourceNameChange}
+                    required>
+                </lightning-input>
+
+            </div>
+
+            <!-- SOURCE LOADED -->
+            <template if:true={sourceLoaded}>
+                <div class="slds-box slds-theme_success
+                            slds-m-top_medium">
+
+                    <p>
+                        <strong>Source List View:</strong>
+                        {sourceInfo.label}
+                    </p>
+
+                    <p>
+                        Columns: {columnCount}
+                    </p>
+
+                </div>
+            </template>
+
+            <!-- FIELD API NAME -->
+            <div class="slds-m-top_medium">
+
+                <lightning-combobox
+                    label="Field API Name"
+                    placeholder="Select a field"
+                    value={fieldApiName}
+                    options={filterFieldOptions}
+                    onchange={handleFieldChange}
+                    required>
+                </lightning-combobox>
+
+            </div>
+
+            <!-- RECORD SELECTION -->
+            <div class="slds-m-top_large">
+
+                <div class="slds-grid slds-grid_align-spread
+                            slds-m-bottom_small">
+
+                    <h3 class="slds-text-heading_small">
+                        Select Records
+                    </h3>
+
+                    <span>
+                        Selected: {selectedCount}
+                    </span>
+
+                </div>
+
+                <!-- SELECT ALL -->
+                <template if:true={hasRecords}>
+
+                    <div class="slds-box slds-theme_shade">
+
+                        <lightning-input
+                            type="checkbox"
+                            label="Select all loaded records"
+                            checked={allLoadedSelected}
+                            onchange={handleSelectAll}>
+                        </lightning-input>
+
+                    </div>
+
+                </template>
+
+                <!-- LOADING RECORDS -->
+                <template if:true={isLoadingRecords}>
+
+                    <lightning-spinner
+                        alternative-text="Loading records"
+                        size="small">
+                    </lightning-spinner>
+
+                </template>
+
+                <!-- RECORD LIST -->
+                <template if:true={hasRecords}>
+
+                    <div class="slds-box slds-m-top_small">
+
+                        <template
+                            for:each={records}
+                            for:item="record">
+
+                            <div
+                                key={record.id}
+                                class="slds-p-vertical_x-small
+                                       slds-border_bottom">
+
+                                <lightning-input
+                                    type="checkbox"
+                                    label={record.label}
+                                    checked={record.selected}
+                                    data-record-id={record.id}
+                                    onchange={handleRecordSelection}>
+                                </lightning-input>
+
+                            </div>
+
+                        </template>
+
+                    </div>
+
+                </template>
+
+                <!-- NO RECORDS -->
+                <template if:false={hasRecords}>
+
+                    <template if:false={isLoadingRecords}>
+
+                        <template if:false={recordError}>
+
+                            <p class="slds-text-color_weak
+                                      slds-p-around_medium">
+                                No records loaded.
+                            </p>
+
+                        </template>
+
+                    </template>
+
+                </template>
+
+                <!-- RECORD ERROR -->
+                <template if:true={recordError}>
+
+                    <div class="slds-text-color_error
+                                slds-m-top_small">
+                        {recordError}
+                    </div>
+
+                </template>
+
+                <!-- LOAD MORE -->
+                <template if:true={hasMoreRecords}>
+
+                    <div class="slds-m-top_medium">
+
+                        <lightning-button
+                            label="Load More Records"
+                            onclick={handleLoadMore}
+                            disabled={isLoadingRecords}>
+                        </lightning-button>
+
+                    </div>
+
+                </template>
+
+            </div>
+
+            <!-- LOADING SOURCE -->
+            <template if:true={isLoadingSource}>
+
+                <lightning-spinner
+                    alternative-text="Loading List View"
+                    size="small">
+                </lightning-spinner>
+
+            </template>
+
+            <!-- CREATION SUMMARY -->
+            <template if:true={selectedCount}>
+
+                <div class="slds-box slds-theme_info
+                            slds-m-top_medium">
+
+                    <p>
+                        <strong>Selected records: </strong>
+                        {selectedCount}
+                    </p>
+
+                    <p>
+                        <strong>List Views to be created: </strong>
+                        {selectedCount}
+                    </p>
+
+                    <p>
+                        <strong>Expected result: </strong>
+                        {selectedCount} separate List Views
+                    </p>
+
+                </div>
+
+            </template>
+
+            <!-- ERROR -->
+            <template if:true={errorMessage}>
+
+                <div class="slds-text-color_error
+                            slds-m-top_medium">
+                    {errorMessage}
+                </div>
+
+            </template>
+
+            <!-- SUCCESS -->
+            <template if:true={successMessage}>
+
+                <div class="slds-text-color_success
+                            slds-m-top_medium">
+                    {successMessage}
+                </div>
+
+            </template>
+
+            <!-- CLONE BUTTON AND DUPLICATE CHECK STATUS -->
+            <div class="slds-m-top_large">
+
+                <!-- BACKGROUND DUPLICATE CHECK -->
+                <template if:true={existingListViewsLoading}>
+                    <p class="slds-text-color_weak slds-m-top_small">
+                        Duplicate checking is running in the background...
+                    </p>
+                </template>
+
+                <!-- DUPLICATE CHECK ERROR -->
+                <template if:true={existingListViewsError}>
+
+                    <div class="slds-text-color_error
+                                slds-m-bottom_medium">
+
+                        <lightning-icon
+                            icon-name="utility:error"
+                            size="x-small"
+                            class="slds-m-right_x-small">
+                        </lightning-icon>
+
+                        Duplicate checking failed:
+                        {existingListViewsError}
+
+                    </div>
+
+                </template>
+
+                <!-- DUPLICATE CHECK COMPLETED -->
+                <template if:true={existingListViewsLoaded}>
+
+                    <template if:false={existingListViewsError}>
+
+                        <div class="slds-text-color_success
+                                    slds-m-bottom_medium">
+
+                            <lightning-icon
+                                icon-name="utility:success"
+                                size="x-small"
+                                class="slds-m-right_x-small">
+                            </lightning-icon>
+
+                            Duplicate checking completed.
+
+                        </div>
+
+                    </template>
+
+                </template>
+
+                <!-- CLONE BUTTON -->
+                <lightning-button
+                    label="Clone List Views"
+                    variant="brand"
+                    onclick={handleClone}
+                    disabled={isCloneDisabled}>
+                </lightning-button>
+
+            </div>
+
+            <!-- SHOW EXISTING LIST VIEWS -->
+            <template if:true={existingLists.length}>
+
+                <div class="slds-box slds-theme_warning
+                            slds-m-top_medium">
+
+                    <h3 class="slds-text-heading_small
+                               slds-m-bottom_medium">
+
+                        <lightning-icon
+                            icon-name="utility:warning"
+                            size="x-small"
+                            class="slds-m-right_x-small">
+                        </lightning-icon>
+
+                        Existing List Views (Not Created)
+
+                    </h3>
+
+                    <template
+                        for:each={existingLists}
+                        for:item="item">
+
+                        <div
+                            key={item.apiName}
+                            class="slds-p-vertical_small
+                                   slds-border_bottom">
+
+                            <p class="slds-text-title_bold">
+                                {item.label}
+                            </p>
+
+                            <p class="slds-text-color_weak
+                                      slds-text-body_small">
+                                API Name: {item.apiName}
+                            </p>
+
+                            <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="slds-m-top_x-small
+                                       slds-inline-block">
+
+                                <lightning-icon
+                                    icon-name="utility:new_window"
+                                    size="xx-small"
+                                    class="slds-m-right_xx-small">
+                                </lightning-icon>
+
+                                Open Existing List View
+
+                            </a>
+
+                        </div>
+
+                    </template>
+
+                </div>
+
+            </template>
+
+            <!-- SHOW CREATED LIST VIEWS -->
+            <template if:true={createdLists.length}>
+
+                <div class="slds-box slds-theme_success
+                            slds-m-top_medium">
+
+                    <h3 class="slds-text-heading_small
+                               slds-m-bottom_medium">
+
+                        Successfully Created List Views
+
+                    </h3>
+
+                    <template
+                        for:each={createdLists}
+                        for:item="item">
+
+                        <div
+                            key={item.apiName}
+                            class="slds-p-vertical_small
+                                   slds-border_bottom">
+
+                            <lightning-icon
+                                icon-name="utility:success"
+                                size="x-small"
+                                variant="success">
+                            </lightning-icon>
+
+                            <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="slds-m-left_small">
+
+                                {item.label}
+
+                            </a>
+
+                            <p class="slds-text-color_weak
+                                      slds-text-body_small
+                                      slds-m-left_large">
+
+                                {item.apiName}
+
+                            </p>
+
+                        </div>
+
+                    </template>
+
+                </div>
+
+            </template>
+
+        </div>
+
+    </lightning-card>
+</template>

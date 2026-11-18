@@ -1,0 +1,1 @@
+This code is fully working LWS for cloning ListViews in Salesforce. Do not alter it as it is a saved copy for Rollback.
